@@ -7,7 +7,7 @@
     </asset>
 
     <worldbody>
-        <body name="obj_coke" pos="0.3 0 0.75" euler="0 0 0">
+        <body name="obj_coke" pos="0.3 -0.3 0.75" euler="0 0 0">
             <joint type="free" />
             <body pos="0 0 0" euler="1.57 0.0 0">
                 <geom type="mesh" material="coke_mat" mesh="coke_red" class="visual_collision" />

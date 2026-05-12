@@ -205,7 +205,7 @@
   </default>
 
   <worldbody>
-    <body name="base_link" pos="-0.3 0 0.15">
+    <body name="base_link" pos="-0.25 0 0">
       <inertial pos="-0.0457 0.0066 0.1943" mass="35.99" diaginertia="0.65 0.65 0.96"/>
       <freejoint name="floating_base"/>
 
@@ -507,6 +507,7 @@
                         <geom type="mesh" mesh="arm_r_link7" material="black" class="visual"/>
                         <geom type="mesh" mesh="arm_r_link7" class="collision"/>
                         <geom size="0.0115 0.021 0.021" pos="0.107944 0 -0.065588" quat="0.475435 -0.475435 0.523413 0.523413" type="box"/>
+                        <site name="wrist_center" pos="0 0 0" size="0.01" rgba="1 0 1 0.5"/>
                         <site name="eef_site" pos="0.04 0.01 -0.15" size="0.01" rgba="1 0 0 0.5"/>
 
 
@@ -657,7 +658,9 @@
       </body>
     </body>
   </worldbody>
-
+  <equality>                                                                                                                                         
+    <weld body1="base_link"/>
+  </equality>
   <actuator>
     <!-- Mobile base: steering (position control) -->
     <position class="left_wheel_steer" name="left_wheel_steer" joint="left_wheel_steer_joint" inheritrange="1"/>

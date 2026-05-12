@@ -1,6 +1,6 @@
 import numpy as np
 import mujoco
-from utils import *
+from .utils import *
 
 """ CLIPPING ERROR """
 POSITION_CLIPPING = 0.02
@@ -61,7 +61,7 @@ def get_pseudo_inverse(
         jacobian,
         method="svd",
         threshold=1e-3,
-        damping=1.0
+        damping=0.1
         ):
     
     row, col = jacobian.shape
@@ -91,5 +91,56 @@ def get_pseudo_inverse(
         
     return inversed
 
-def solve_ik(model, data, joint_names, eef_site_name, p_current, r_current, p_target, r_target):
+def solve_ik(model, data, joint_names, eef_site_name, q_init, p_target, r_target, max_tick, debug=False):
     eef_site_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, eef_site_name)
+
+    joint_names_idx = [
+      model.jnt_qposadr[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, name)]
+      for name in joint_names
+    ]
+    init_qpos = data.qpos[joint_names_idx].copy()
+
+    q_mins = np.array([model.jnt_range[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, n)][0] for n in joint_names])
+    q_maxs = np.array([model.jnt_range[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, n)][1] for n in joint_names])
+
+    data.qpos[joint_names_idx] = q_init
+    mujoco.mj_forward(model, data)
+
+    for tick in range(max_tick):
+        eef_site_pos = data.site_xpos[eef_site_id]
+        eef_site_rmat = data.site_xmat[eef_site_id]
+        eef_site_rmat = eef_site_rmat.reshape(3, 3)
+
+        pos_error, rotvec_error = get_ik_error_clipped(
+        p_current=eef_site_pos,
+        r_current=eef_site_rmat,
+        p_target=p_target,
+        r_target=r_target
+        )
+        error = np.concatenate([pos_error, rotvec_error])
+
+        # terminate condition
+        if np.linalg.norm(pos_error) < 0.01 and np.linalg.norm(rotvec_error) < 0.01:
+            # print("Target reached!")
+            break
+
+
+        jacobian_p, jacobian_r = get_jacobian(model, data, eef_site_name, type='site', joints_use=joint_names)
+
+        jacobian = np.concat([jacobian_p, jacobian_r], axis=0)
+
+        inversed_jacobian = get_pseudo_inverse(jacobian, method="dls")
+
+        qpos_error = inversed_jacobian @ error
+        before = data.qpos[joint_names_idx].copy()
+        new_q = before + qpos_error
+        clipped = np.clip(new_q, q_mins, q_maxs)        # ← 한계 강제
+
+        data.qpos[joint_names_idx] = clipped
+        mujoco.mj_forward(model, data)
+
+    target_qpos = data.qpos[joint_names_idx].copy()
+    data.qpos[joint_names_idx] = init_qpos
+    mujoco.mj_forward(model, data)
+
+    return target_qpos, error

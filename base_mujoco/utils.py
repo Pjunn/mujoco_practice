@@ -20,3 +20,30 @@ def rmat2rotvec(R):
 
     return theta * axis
 
+def rpy2r(rpy_rad):
+    """
+        roll,pitch,yaw in radian to R
+    """
+    roll  = rpy_rad[0]
+    pitch = rpy_rad[1]
+    yaw   = rpy_rad[2]
+    Cphi  = np.cos(roll)
+    Sphi  = np.sin(roll)
+    Cthe  = np.cos(pitch)
+    Sthe  = np.sin(pitch)
+    Cpsi  = np.cos(yaw)
+    Spsi  = np.sin(yaw)
+    R     = np.array([
+        [Cpsi * Cthe, -Spsi * Cphi + Cpsi * Sthe * Sphi, Spsi * Sphi + Cpsi * Sthe * Cphi],
+        [Spsi * Cthe, Cpsi * Cphi + Spsi * Sthe * Sphi, -Cpsi * Sphi + Spsi * Sthe * Cphi],
+        [-Sthe, Cthe * Sphi, Cthe * Cphi]
+    ])
+    assert R.shape == (3, 3)
+    return R
+
+
+def rpy_deg2r(rpy_deg):
+    """
+        Roll Pitch Yaw in Degree to Rotation Matrix
+    """
+    return rpy2r(np.deg2rad(rpy_deg))
